@@ -18,8 +18,12 @@ const envSchema = z.object({
   SESSION_COOKIE_MODE: z.enum(['standard', 'embedded']).optional(),
   VITE_REGISTRY_ADDRESS: addr.optional().or(z.literal('')),
   ANCHOR_CHAIN_ID: z.coerce.number().int().default(5042002),
-  MAILER: z.enum(['dev', 'webhook']).optional(),
+  MAILER: z.enum(['dev', 'webhook', 'resend']).optional(),
   MAIL_WEBHOOK_URL: z.string().url().optional(),
+  RESEND_API_KEY: z.string().min(1).optional(),
+  RESEND_FROM_EMAIL: z.string().email().default('onboarding@resend.dev'),
+  /** Required in Resend's unverified-domain testing mode; all messages are routed here. */
+  RESEND_TEST_TO: z.string().email().optional(),
   APP_BASE_URL: z.string().url().optional(),
   /** Set to true only behind a reverse proxy you control that appends the client address to X-Forwarded-For. */
   TRUST_PROXY: z.enum(['true', 'false']).default('false'),
@@ -40,8 +44,11 @@ export interface Config {
   keys: KeyProvider
   signer: IssuerSigner
   trustedIssuers: string[]
-  mailer: 'dev' | 'webhook'
+  mailer: 'dev' | 'webhook' | 'resend'
   mailWebhookUrl: string | null
+  resendApiKey: string | null
+  resendFromEmail: string
+  resendTestTo: string | null
   appBaseUrl: string | null
   trustProxy: boolean
 }
@@ -58,13 +65,15 @@ export function loadConfig(source: Record<string, string | undefined> = process.
   const e = parsed.data
   const env = e.NODE_ENV
   const cookieMode = e.SESSION_COOKIE_MODE ?? (env === 'production' ? 'standard' : 'embedded')
-  const mailer = e.MAILER ?? (env === 'production' ? 'webhook' : 'dev')
+  const mailer = e.MAILER ?? (env === 'production' ? 'resend' : 'dev')
   if (env === 'production') {
     if (cookieMode === 'embedded') throw new Error('SESSION_COOKIE_MODE=embedded is not allowed in production')
     if (e.ALLOWED_ORIGINS.trim() === '') throw new Error('ALLOWED_ORIGINS must be set in production')
     if (mailer === 'dev') throw new Error('MAILER=dev is not allowed in production')
   }
   if (mailer === 'webhook' && !e.MAIL_WEBHOOK_URL) throw new Error('MAIL_WEBHOOK_URL is required for MAILER=webhook')
+  if (mailer === 'resend' && !e.RESEND_API_KEY) throw new Error('RESEND_API_KEY is required for MAILER=resend')
+  if (mailer === 'resend' && !e.RESEND_TEST_TO) throw new Error('RESEND_TEST_TO is required for Resend testing mode')
   const spec = e.APP_ENCRYPTION_KEYS ?? (e.APP_ENCRYPTION_KEY ? `1:${e.APP_ENCRYPTION_KEY}` : '')
   if (!spec) throw new Error('Set APP_ENCRYPTION_KEYS (or APP_ENCRYPTION_KEY) to a 32-byte key')
   const versions = spec.split(',').map((s) => Number(s.split(':')[0]))
@@ -85,6 +94,9 @@ export function loadConfig(source: Record<string, string | undefined> = process.
     trustedIssuers: [signer.address, ...e.TRUSTED_ISSUER_ADDRESSES.split(',').map((a) => a.trim()).filter(Boolean)].map((a) => a.toLowerCase()),
     mailer,
     mailWebhookUrl: e.MAIL_WEBHOOK_URL ?? null,
+    resendApiKey: e.RESEND_API_KEY ?? null,
+    resendFromEmail: e.RESEND_FROM_EMAIL,
+    resendTestTo: e.RESEND_TEST_TO ?? null,
     appBaseUrl: e.APP_BASE_URL ?? null,
   }
 }
