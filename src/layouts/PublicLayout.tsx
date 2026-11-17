@@ -1,15 +1,13 @@
 import { useState } from 'react'
-import { Link, NavLink, Outlet } from 'react-router-dom'
+import { Link, Outlet } from 'react-router-dom'
 import { Menu, X } from 'lucide-react'
 import { Logo } from '@/components/Logo'
-import { Button, cn } from '@/components/ui'
+import { Button } from '@/components/ui'
 import { homeFor, useAuth } from '@/lib/auth'
 
 export function PublicLayout() {
   const [open, setOpen] = useState(false)
   const { user } = useAuth()
-  const link = ({ isActive }: { isActive: boolean }) =>
-    cn('rounded-lg px-3 py-2 text-sm font-medium text-mute hover:text-ink', isActive && 'text-ink')
   return (
     <div className="flex min-h-dvh flex-col">
       <header className="sticky top-0 z-40 border-b border-line/70 bg-canvas/90 backdrop-blur">
@@ -65,7 +63,7 @@ export function PublicLayout() {
             <Logo />
             <p className="max-w-xs text-sm text-mute">Your Address. Verified. Yours.</p>
           </div>
-          <FooterCol title="Product" links={[['/how-it-works', 'How it works'], ['/features', 'Features'], ['/business-solutions', 'For business'], ['/docs', 'API documentation']]} />
+          <FooterCol title="Product" links={[['/how-it-works', 'How it works'], ['/features', 'Features'], ['/business-solutions', 'For business'], ['/docs', 'Documentation']]} />
           <FooterCol title="Trust" links={[['/privacy-security', 'Privacy and security'], ['/privacy', 'Privacy policy'], ['/terms', 'Terms of service']]} />
           <FooterCol title="Company" links={[['/faq', 'FAQ'], ['/contact', 'Contact']]} />
         </div>
