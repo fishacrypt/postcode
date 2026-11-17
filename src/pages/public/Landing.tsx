@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { ArrowRight, Building2, EyeOff, FileCheck2, Fingerprint, KeyRound, MapPinned, ShieldCheck, UserRound } from 'lucide-react'
+import { ArrowRight, Building2, EyeOff, FileCheck2, Fingerprint, KeyRound, MapPinned, UserRound } from 'lucide-react'
 import { Button, Card } from '@/components/ui'
 
 const STEPS = [
@@ -13,9 +13,6 @@ export function Landing() {
     <>
       <section className="mx-auto grid max-w-6xl items-center gap-10 px-4 pb-16 pt-12 sm:px-6 lg:grid-cols-[1.1fr_0.9fr] lg:pb-24 lg:pt-20">
         <div className="space-y-6">
-          <p className="inline-flex items-center gap-2 rounded-full border border-line bg-paper px-3 py-1 text-xs font-semibold uppercase tracking-[0.08em] text-mute">
-            <ShieldCheck className="h-3.5 w-3.5 text-accent" aria-hidden /> Nigeria first
-          </p>
           <h1 className="text-4xl font-semibold leading-[1.05] tracking-[-0.03em] sm:text-6xl">Your Address. Verified. Yours.</h1>
           <p className="max-w-xl text-lg text-mute">
             Create and manage a secure digital address credential. Verify what matters and share only what is necessary.
@@ -24,11 +21,6 @@ export function Landing() {
             <Link to="/register">
               <Button className="px-6">
                 Get Started <ArrowRight className="h-4 w-4" aria-hidden />
-              </Button>
-            </Link>
-            <Link to="/how-it-works">
-              <Button variant="secondary" className="px-6">
-                How It Works
               </Button>
             </Link>
           </div>
