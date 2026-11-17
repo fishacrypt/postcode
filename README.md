@@ -4,8 +4,6 @@ Your Address. Verified. Yours.
 
 PostcodeProof lets people create a digital address credential, check their Nigerian postcode, and share only the details a business needs. Businesses can ask for consent-based verification through a dashboard or an API. The first release covers Nigeria only.
 
-Built with [Arc Studio](https://studio.arc.io)
-
 **Status: pre-production.** It builds and its automated tests pass, but it has not had an independent security review and must not be deployed before one. See `docs/security/security-findings-register.md`.
 
 ## Tech stack
@@ -19,7 +17,7 @@ Built with [Arc Studio](https://studio.arc.io)
 ## Repository layout
 
 ```
-src/                 Web app (the Arc Studio template keeps Vite at the repository root)
+src/                 Web app (Vite is configured at the repository root)
 apps/api/src/        API server, services, scripts
 packages/            address (country modules), crypto, validation, shared
 contracts/           CredentialRegistry.sol and Foundry tests
@@ -54,7 +52,7 @@ Names and purposes only. Values are never committed. `.env.example` has placehol
 - `ALLOWED_ORIGINS`, `SESSION_COOKIE_MODE`, `APP_BASE_URL`, `TRUST_PROXY`: browser origin, cookie and reverse-proxy settings.
 - `MAILER`, `MAIL_WEBHOOK_URL`, `ENABLE_DEV_OUTBOX`: email delivery (development mode writes to `.dev-mail/`).
 - `VITE_REGISTRY_ADDRESS`, `ANCHOR_CHAIN_ID`: optional onchain anchoring. Public values only.
-- `RPC_PROXY_BASE_URL`, `RPC_PROXY_TOKEN`, `RPC_PROXY_CHAINS`: optional, provisioned by Arc Studio. Outside Arc Studio, public RPC is used.
+- `RPC_PROXY_BASE_URL`, `RPC_PROXY_TOKEN`, `RPC_PROXY_CHAINS`: optional RPC proxy configuration. Public RPC is used when no proxy is configured.
 
 ### Commands
 
