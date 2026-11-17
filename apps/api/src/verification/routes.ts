@@ -114,18 +114,27 @@ export function registerVerificationRoutes(router: Router): void {
     const disclosures = body.disclosures.map((d) => ({ ...d, matches: disclosureMatches(document, d) }))
     let status: Status = 'invalid'
     let onchain: OnchainStatus | null = null
+    let credentialRecordFound = false
     if (sig.issuerTrusted) {
       const stored = await ctx.app.db<CredentialRow[]>`
         SELECT * FROM credentials WHERE document_hash = ${hashCanonical(document as never)}`
       const row = stored[0]
+      credentialRecordFound = Boolean(row)
+      // A trusted signature alone is not enough: the authoritative record must exist
+      // so local revocation and lifecycle state can be checked before calling it valid.
       if (row) ({ status, onchain } = await credentialStatus(ctx, row))
-      else status = new Date(document.expiresAt) <= ctx.app.now() ? 'expired' : 'valid'
+      else status = 'invalid'
     }
     const allMatch = disclosures.every((d) => d.matches)
     await logVerification(ctx, { credentialId: null, channel: 'presentation', outcome: status, fields: disclosures.map((d) => d.field) })
     return json({
       ...summary(document, status, onchain),
-      checks: { signatureValid: sig.signatureValid, issuerTrusted: sig.issuerTrusted, disclosuresMatch: allMatch },
+      checks: {
+        signatureValid: sig.signatureValid,
+        issuerTrusted: sig.issuerTrusted,
+        credentialRecordFound,
+        disclosuresMatch: allMatch,
+      },
       disclosed: labelled(disclosures.filter((d) => d.matches && status === 'valid')),
     })
   })
