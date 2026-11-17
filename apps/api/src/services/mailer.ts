@@ -34,6 +34,36 @@ export class DevMailer implements Mailer {
   }
 }
 
+/** Sends transactional email through Resend. In test mode, all messages go to the configured test inbox. */
+export class ResendMailer implements Mailer {
+  constructor(
+    private readonly apiKey: string,
+    private readonly from: string,
+    private readonly testRecipient: string,
+  ) {}
+
+  async send(message: MailMessage): Promise<void> {
+    const res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        authorization: `Bearer ${this.apiKey}`,
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({
+        from: this.from,
+        to: [this.testRecipient],
+        subject: message.subject,
+        text: message.text,
+      }),
+    })
+
+    if (!res.ok) {
+      const detail = await res.text().catch(() => '')
+      throw new Error(`Resend email delivery failed (${res.status}): ${detail.slice(0, 500)}`)
+    }
+  }
+}
+
 /** Posts the message (without the raw token field) to a transactional-email webhook you operate. */
 export class WebhookMailer implements Mailer {
   constructor(private readonly url: string) {}
@@ -49,5 +79,9 @@ export class WebhookMailer implements Mailer {
 }
 
 export function createMailer(config: Config): Mailer {
-  return config.mailer === 'webhook' && config.mailWebhookUrl ? new WebhookMailer(config.mailWebhookUrl) : new DevMailer()
+  if (config.mailer === 'resend' && config.resendApiKey && config.resendTestTo) {
+    return new ResendMailer(config.resendApiKey, config.resendFromEmail, config.resendTestTo)
+  }
+  if (config.mailer === 'webhook' && config.mailWebhookUrl) return new WebhookMailer(config.mailWebhookUrl)
+  return new DevMailer()
 }
