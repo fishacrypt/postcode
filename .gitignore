@@ -1,0 +1,15 @@
+node_modules
+dist
+.env
+.env.*
+!.env.example
+recovery_file*
+.circle/
+contracts/out
+contracts/cache
+traces.jsonl
+console.jsonl
+playwright-report
+test-results
+
+.dev-mail/
