@@ -15,7 +15,7 @@ interface Result {
   onchain: string | null
   notice: string
   disclosed: { field: string; label: string; value: string; sensitive: boolean }[]
-  checks?: { signatureValid: boolean; issuerTrusted: boolean; disclosuresMatch: boolean }
+  checks?: { signatureValid: boolean; issuerTrusted: boolean; credentialRecordFound?: boolean; disclosuresMatch: boolean }
   linkExpiresAt?: string
 }
 
@@ -99,6 +99,9 @@ function ResultCard({ result }: { result: Result }) {
       </div>
       {result.checks && !result.checks.disclosuresMatch && (
         <p className="rounded-xl border border-bad/20 bg-bad/5 p-3 text-sm text-bad">Some disclosed values do not match the credential and were not shown.</p>
+      )}
+      {result.checks && result.checks.credentialRecordFound === false && (
+        <p className="rounded-xl border border-bad/20 bg-bad/5 p-3 text-sm text-bad">The credential is not present in the issuing registry database. Its signature alone is not sufficient to establish current validity.</p>
       )}
       {result.disclosed.length > 0 ? (
         <dl className="divide-y divide-line rounded-xl border border-line">
