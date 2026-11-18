@@ -68,6 +68,8 @@ async function credentialStatus(ctx: Ctx, row: CredentialRow): Promise<{ status:
   const base = effectiveStatus(row, ctx.app.now())
   const revocations = await ctx.app.db<{ created_at: Date }[]>`SELECT created_at FROM credential_revocations WHERE credential_id = ${row.id} LIMIT 1`
   const revokedAt = revocations[0]?.created_at ?? null
+  // A local revocation is definitive; it must not become "unavailable" just because RPC is down.
+  if (base === 'revoked') return { status: 'revoked', onchain: null, revokedAt }
   const anchored = await ctx.app.db<{ n: string }[]>`SELECT count(*)::text AS n FROM credential_anchors WHERE credential_id = ${row.id}`
   const hasAnchor = Number(anchored[0]?.n ?? 0) > 0
   const onchain = hasAnchor ? await onchainStatus(ctx.app.config, row.id) : null
