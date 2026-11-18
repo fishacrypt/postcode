@@ -6,7 +6,7 @@ import { Badge, Card, ErrorNote, Spinner, formatDate, statusTone } from '@/compo
 import { api, ApiError, ASSURANCE_LABELS } from '@/lib/api'
 
 interface Result {
-  status: 'valid' | 'expired' | 'revoked' | 'invalid'
+  status: 'valid' | 'expired' | 'revoked' | 'invalid' | 'unavailable'
   reference: string
   issuedAt: string
   expiresAt: string
@@ -24,6 +24,7 @@ const STATUS_COPY: Record<Result['status'], { title: string; icon: typeof CheckC
   expired: { title: 'Credential has expired', icon: AlertTriangle, tone: 'text-warn' },
   revoked: { title: 'Credential was revoked', icon: XCircle, tone: 'text-bad' },
   invalid: { title: 'Credential could not be authenticated', icon: ShieldAlert, tone: 'text-bad' },
+  unavailable: { title: 'Verification temporarily unavailable', icon: AlertTriangle, tone: 'text-warn' },
 }
 
 export function VerifyPage() {
@@ -113,7 +114,7 @@ function ResultCard({ result }: { result: Result }) {
           ))}
         </dl>
       ) : (
-        <p className="text-sm text-mute">{result.status === 'valid' ? 'The holder has not shared any address fields.' : 'No fields are shown for this credential.'}</p>
+        <p className="text-sm text-mute">{result.status === 'valid' ? 'The holder has not shared any address fields.' : result.status === 'unavailable' ? 'The issuing registry could not be reached to confirm the current status. Try again later.' : 'No fields are shown for this credential.'}</p>
       )}
       <dl className="grid grid-cols-2 gap-3 text-sm">
         <Meta label="Status"><Badge tone={statusTone(result.status)}>{result.status}</Badge></Meta>
