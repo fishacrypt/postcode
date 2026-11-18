@@ -54,7 +54,7 @@ export interface PostcodeFormatResult {
 
 export interface PostcodeRecord {
   readonly postcode: string
-  readonly state: string
+  readonly state: string | null
   readonly lga: string | null
   readonly area: string | null
   readonly sourceId: string
