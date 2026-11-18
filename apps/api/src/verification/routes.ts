@@ -38,12 +38,13 @@ function labelled(items: { field: ClaimField; value: string }[]) {
   return items.map((d) => ({ field: d.field, label: CLAIM_LABELS[d.field], value: d.value, sensitive: (SENSITIVE_CLAIMS as readonly string[]).includes(d.field) }))
 }
 
-function summary(document: CredentialDocument, status: Status, onchain: OnchainStatus | null) {
+function summary(document: CredentialDocument, status: Status, onchain: OnchainStatus | null, revokedAt: Date | null = null) {
   return {
     status,
     reference: document.id.slice(0, 8),
     issuedAt: document.issuedAt,
     expiresAt: document.expiresAt,
+    revokedAt,
     issuer: document.issuer,
     assurance: { ...document.assurance, label: ASSURANCE_LABELS[document.assurance.level] },
     onchain,
@@ -61,20 +62,22 @@ async function logVerification(
             ${JSON.stringify(entry.fields)}::text::jsonb, ${ipHash(ctx.app, ctx.ip)})`
 }
 
-async function credentialStatus(ctx: Ctx, row: CredentialRow): Promise<{ status: Status; onchain: OnchainStatus | null }> {
+async function credentialStatus(ctx: Ctx, row: CredentialRow): Promise<{ status: Status; onchain: OnchainStatus | null; revokedAt: Date | null }> {
   const sig = await checkSignature(ctx.app, row.document, row.issuer_signature)
-  if (!sig.issuerTrusted) return { status: 'invalid', onchain: null }
+  if (!sig.issuerTrusted) return { status: 'invalid', onchain: null, revokedAt: null }
   const base = effectiveStatus(row, ctx.app.now())
+  const revocations = await ctx.app.db<{ created_at: Date }[]>`SELECT created_at FROM credential_revocations WHERE credential_id = ${row.id} LIMIT 1`
+  const revokedAt = revocations[0]?.created_at ?? null
   const anchored = await ctx.app.db<{ n: string }[]>`SELECT count(*)::text AS n FROM credential_anchors WHERE credential_id = ${row.id}`
   const hasAnchor = Number(anchored[0]?.n ?? 0) > 0
   const onchain = hasAnchor ? await onchainStatus(ctx.app.config, row.id) : null
   // For anchored credentials, the registry is part of the validity check. Never
   // claim validity when its status cannot be confirmed or the anchor is missing.
-  if (onchain === 'revoked') return { status: 'revoked', onchain }
-  if (onchain === 'expired') return { status: 'expired', onchain }
-  if (onchain === 'unknown') return { status: 'unavailable', onchain }
-  if (onchain === 'none') return { status: 'invalid', onchain }
-  return { status: base === 'active' ? 'valid' : base, onchain }
+  if (onchain === 'revoked') return { status: 'revoked', onchain, revokedAt }
+  if (onchain === 'expired') return { status: 'expired', onchain, revokedAt: null }
+  if (onchain === 'unknown') return { status: 'unavailable', onchain, revokedAt: null }
+  if (onchain === 'none') return { status: 'invalid', onchain, revokedAt: null }
+  return { status: base === 'active' ? 'valid' : base, onchain, revokedAt: base === 'revoked' ? revokedAt : null }
 }
 
 export function registerVerificationRoutes(router: Router): void {
@@ -97,11 +100,11 @@ export function registerVerificationRoutes(router: Router): void {
       SELECT c.* FROM credentials c JOIN verification_tokens v ON v.credential_id = c.id WHERE v.id = ${t.token_id}`
     const row = creds[0]
     if (!row) throw GENERIC_UNAVAILABLE
-    const { status, onchain } = await credentialStatus(ctx, row)
+    const { status, onchain, revokedAt } = await credentialStatus(ctx, row)
     const disclosed = status === 'valid' ? disclose(ctx.app, row, t.fields) : []
     await logVerification(ctx, { credentialId: row.id, tokenId: t.token_id, channel: 'public_link', outcome: status, fields: disclosed.map((d) => d.field) })
     return json({
-      ...summary(row.document, status, onchain),
+      ...summary(row.document, status, onchain, revokedAt),
       disclosed: labelled(disclosed),
       linkExpiresAt: t.expires_at,
     })
@@ -119,6 +122,7 @@ export function registerVerificationRoutes(router: Router): void {
     const disclosures = body.disclosures.map((d) => ({ ...d, matches: disclosureMatches(document, d) }))
     let status: Status = 'invalid'
     let onchain: OnchainStatus | null = null
+    let revokedAt: Date | null = null
     let credentialRecordFound = false
     if (sig.issuerTrusted) {
       const stored = await ctx.app.db<CredentialRow[]>`
@@ -127,13 +131,13 @@ export function registerVerificationRoutes(router: Router): void {
       credentialRecordFound = Boolean(row)
       // A trusted signature alone is not enough: the authoritative record must exist
       // so local revocation and lifecycle state can be checked before calling it valid.
-      if (row) ({ status, onchain } = await credentialStatus(ctx, row))
+      if (row) ({ status, onchain, revokedAt } = await credentialStatus(ctx, row))
       else status = 'invalid'
     }
     const allMatch = disclosures.every((d) => d.matches)
     await logVerification(ctx, { credentialId: null, channel: 'presentation', outcome: status, fields: disclosures.map((d) => d.field) })
     return json({
-      ...summary(document, status, onchain),
+      ...summary(document, status, onchain, revokedAt),
       checks: {
         signatureValid: sig.signatureValid,
         issuerTrusted: sig.issuerTrusted,
