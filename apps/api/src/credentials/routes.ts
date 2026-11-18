@@ -61,6 +61,7 @@ async function toDto(ctx: Ctx, row: CredentialRow) {
     : []
   const a = addr[0]
   const anchor = anchors[0]
+  const revocations = await ctx.app.db<{ created_at: Date }[]>`SELECT created_at FROM credential_revocations WHERE credential_id = ${row.id} LIMIT 1`
   return {
     id: row.id,
     type: row.document.type,
@@ -69,6 +70,7 @@ async function toDto(ctx: Ctx, row: CredentialRow) {
     issuer: row.document.issuer,
     issuedAt: row.issued_at,
     expiresAt: row.expires_at,
+    revokedAt: revocations[0]?.created_at ?? null,
     credentialHash: row.document_hash,
     assurance: row.document.assurance,
     renewedFrom: row.renewed_from,
