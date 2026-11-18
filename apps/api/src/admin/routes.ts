@@ -126,7 +126,7 @@ export function registerAdminRoutes(router: Router): void {
       id: string; status: string; issued_at: Date; expires_at: Date; assurance: number;
       owner_email: string; revoked_at: Date | null; revoked_by_email: string | null;
       revocation_source: string | null; revocation_reason: string | null;
-    }[]>\`
+    }[]>`
       SELECT c.id, c.status, c.issued_at, c.expires_at,
         (c.document->'assurance'->>'level')::int AS assurance, u.email AS owner_email,
         rev.created_at AS revoked_at, actor.email AS revoked_by_email,
@@ -145,14 +145,14 @@ export function registerAdminRoutes(router: Router): void {
           OR (${filterStatus} = 'expired' AND c.status = 'active' AND c.expires_at <= ${ctx.app.now()})
           OR (${filterStatus} = 'active' AND c.status = 'active' AND c.expires_at > ${ctx.app.now()}))
       ORDER BY c.created_at DESC
-      LIMIT ${pageSize} OFFSET ${(page - 1) * pageSize}\`
-    const totals = await ctx.app.db<{ total: string }[]>\`
+      LIMIT ${pageSize} OFFSET ${(page - 1) * pageSize}`
+    const totals = await ctx.app.db<{ total: string }[]>`
       SELECT count(*)::text AS total FROM credentials c JOIN users u ON u.id = c.user_id
       WHERE (${search} = '' OR c.id::text ILIKE ${pattern} OR u.email ILIKE ${pattern})
         AND (${filterStatus} = 'all'
           OR (${filterStatus} = 'revoked' AND c.status = 'revoked')
           OR (${filterStatus} = 'expired' AND c.status = 'active' AND c.expires_at <= ${ctx.app.now()})
-          OR (${filterStatus} = 'active' AND c.status = 'active' AND c.expires_at > ${ctx.app.now()}))\`
+          OR (${filterStatus} = 'active' AND c.status = 'active' AND c.expires_at > ${ctx.app.now()}))`
     return json({
       credentials: rows.map((r) => ({
         id: r.id, status: r.status === 'revoked' ? 'revoked' : r.expires_at <= ctx.app.now() ? 'expired' : 'active',
