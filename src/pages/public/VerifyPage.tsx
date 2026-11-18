@@ -11,7 +11,7 @@ interface Result {
   issuedAt: string
   expiresAt: string
   issuer: { name: string; address: string }
-  assurance: { level: number; label: string; gpsFix: boolean; datasetMatch: boolean }
+  assurance: { level: number; label: string; gpsFix: boolean; datasetMatch: boolean; validationSource?: string; validationEnvironment?: 'test' | 'live' | 'local'; proofOfResidence?: 'not_established' }
   onchain: string | null
   notice: string
   disclosed: { field: string; label: string; value: string; sensitive: boolean }[]
@@ -122,9 +122,11 @@ function ResultCard({ result }: { result: Result }) {
         <Meta label="Issued">{formatDate(result.issuedAt)}</Meta>
         <Meta label="Expires">{formatDate(result.expiresAt)}</Meta>
         <Meta label="Assurance">{ASSURANCE_LABELS[result.assurance.level] ?? result.assurance.label}</Meta>
+        <Meta label="Validation source">{result.assurance.validationSource === 'nipost-validator' ? 'NIPOST Postcode Validator' : result.assurance.validationSource === 'postgres-dataset' ? 'PostcodeProof dataset' : result.assurance.validationSource ?? 'Not recorded'}</Meta>
+        <Meta label="Validation environment">{result.assurance.validationEnvironment === 'test' ? 'Test sandbox' : result.assurance.validationEnvironment === 'live' ? 'Live service' : result.assurance.validationEnvironment === 'local' ? 'Local dataset' : 'Not recorded'}</Meta>
         <Meta label="Onchain registry">{result.onchain ?? 'Not anchored'}</Meta>
       </dl>
-      <p className="rounded-xl bg-soft p-3 text-xs text-ink">{result.notice}</p>
+      {result.assurance.validationEnvironment === 'test' && <p className="rounded-xl border border-warn/30 bg-warn/5 p-3 text-xs text-warn">This credential was validated against a test sandbox dataset. It is not evidence of a live NIPOST production lookup.</p>}\n      <p className="rounded-xl bg-soft p-3 text-xs text-ink">{result.notice}</p>
     </Card>
   )
 }
