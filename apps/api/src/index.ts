@@ -2,7 +2,7 @@ import { createHandler } from './app'
 import { loadConfig } from './config'
 import { createDb } from './database/db'
 import { migrate } from './database/migrate'
-import { DbPostcodeProvider } from './postcodes/provider'
+import { DbPostcodeProvider, NipostPostcodeProvider } from './postcodes/provider'
 import { RateLimiter } from './security/ratelimit'
 import { createMailer } from './services/mailer'
 
@@ -27,7 +27,9 @@ if (applied.length) console.log(`Applied migrations: ${applied.join(', ')}`)
 const handle = createHandler({
   db,
   config,
-  provider: new DbPostcodeProvider(db),
+  provider: config.nipostApiKey
+    ? new NipostPostcodeProvider(config.nipostApiKey)
+    : new DbPostcodeProvider(db),
   limiter: new RateLimiter(true),
   mailer: createMailer(config),
   now: () => new Date(),
