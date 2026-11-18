@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { Badge, Button, Card, ErrorNote, PageHeader, Select, Spinner, formatDateTime, statusTone } from '@/components/ui'
@@ -140,6 +141,102 @@ export function IssuerCredentials() {
             </li>
           ))}
         </ul>
+      </Card>
+    </>
+  )
+}
+
+
+export function AdminCredentials() {
+  const qc = useQueryClient()
+  const [search, setSearch] = useState('')
+  const [status, setStatus] = useState('all')
+  const [page, setPage] = useState(1)
+  const query = useQuery({
+    queryKey: ['admin-credentials', search, status, page],
+    queryFn: () => api.get<{
+      credentials: {
+        id: string; status: string; issuedAt: string; expiresAt: string; assurance: number;
+        holderEmail: string;
+        revocation: { revokedAt: string; revokedBy: string | null; source: string; reason: string | null } | null;
+      }[];
+      page: number; pageSize: number; total: number;
+    }>(`/admin/credentials?q=${encodeURIComponent(search)}&status=${status}&page=${page}`),
+  })
+  const revoke = useMutation({
+    mutationFn: (v: { id: string; reason: string }) => api.post(`/issuer/credentials/${v.id}/revoke`, { reason: v.reason }),
+    onSuccess: () => {
+      toast.success('Credential revoked.')
+      void qc.invalidateQueries({ queryKey: ['admin-credentials'] })
+      void qc.invalidateQueries({ queryKey: ['admin-audit'] })
+    },
+    onError: (e) => toast.error(errorMessage(e)),
+  })
+  const totalPages = Math.max(1, Math.ceil((query.data?.total ?? 0) / (query.data?.pageSize ?? 20)))
+  return (
+    <>
+      <PageHeader title="Credential registry" subtitle="Search and manage issued credentials. This view exposes registry metadata only — never private address claims." />
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row">
+        <input
+          aria-label="Search credentials"
+          className="min-w-0 flex-1 rounded-xl border border-line bg-panel px-3 py-2 text-sm text-ink outline-none focus:border-accent"
+          placeholder="Search by credential ID or holder email"
+          value={search}
+          onChange={(e) => { setSearch(e.target.value); setPage(1) }}
+        />
+        <Select className="sm:w-44" aria-label="Filter credential status" value={status} onChange={(e) => { setStatus(e.target.value); setPage(1) }}>
+          <option value="all">All statuses</option>
+          <option value="active">Active</option>
+          <option value="expired">Expired</option>
+          <option value="revoked">Revoked</option>
+        </Select>
+      </div>
+      {query.isLoading && <Spinner />}
+      <ErrorNote error={query.error} />
+      <Card>
+        {!query.isLoading && query.data?.credentials.length === 0 && <p className="py-8 text-center text-sm text-mute">No credentials match this search.</p>}
+        <ul className="divide-y divide-line text-sm">
+          {query.data?.credentials.map((c) => (
+            <li key={c.id} className="space-y-2 py-4">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="break-all font-mono text-xs">{c.id}</p>
+                  <p className="mt-1 text-sm font-medium">{c.holderEmail}</p>
+                  <p className="text-xs text-mute">Assurance level {c.assurance} · issued {formatDateTime(c.issuedAt)}</p>
+                  <p className="text-xs text-mute">Expires {formatDateTime(c.expiresAt)}</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Badge tone={statusTone(c.status)}>{c.status}</Badge>
+                  {c.status === 'active' && (
+                    <Button
+                      variant="secondary"
+                      loading={revoke.isPending && revoke.variables?.id === c.id}
+                      onClick={() => {
+                        const reason = window.prompt('Why are you revoking this credential? (Up to 200 characters)')
+                        if (reason?.trim()) revoke.mutate({ id: c.id, reason: reason.trim().slice(0, 200) })
+                      }}
+                    >Revoke</Button>
+                  )}
+                </div>
+              </div>
+              {c.revocation && (
+                <div className="rounded-lg bg-subtle px-3 py-2 text-xs text-mute">
+                  <p className="font-medium text-ink">Revocation record · {formatDateTime(c.revocation.revokedAt)}</p>
+                  <p>Source: {c.revocation.source} · by {c.revocation.revokedBy ?? 'former account'}</p>
+                  {c.revocation.reason && <p>Reason: {c.revocation.reason}</p>}
+                </div>
+              )}
+            </li>
+          ))}
+        </ul>
+        <div className="flex items-center justify-between border-t border-line pt-3 text-xs text-mute">
+          <span>{query.data ? `Showing ${query.data.total === 0 ? 0 : (page - 1) * query.data.pageSize + 1}–${Math.min(page * query.data.pageSize, query.data.total)} of ${query.data.total}` : ' '}</span>
+          <div className="flex items-center gap-2">
+            <Button size="sm" variant="secondary" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>Previous</Button>
+            <span>Page {page} of {totalPages}</span>
+            <Button size="sm" variant="secondary" disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)}>Next</Button>
+          </div>
+        </div>
       </Card>
     </>
   )
