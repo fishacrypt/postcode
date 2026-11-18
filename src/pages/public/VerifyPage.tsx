@@ -10,6 +10,7 @@ interface Result {
   reference: string
   issuedAt: string
   expiresAt: string
+  revokedAt?: string | null
   issuer: { name: string; address: string }
   assurance: { level: number; label: string; gpsFix: boolean; datasetMatch: boolean; validationSource?: string; validationEnvironment?: 'test' | 'live' | 'local'; proofOfResidence?: 'not_established' }
   onchain: string | null
@@ -121,6 +122,7 @@ function ResultCard({ result }: { result: Result }) {
         <Meta label="Reference"><span className="font-mono">{result.reference}</span></Meta>
         <Meta label="Issued">{formatDate(result.issuedAt)}</Meta>
         <Meta label="Expires">{formatDate(result.expiresAt)}</Meta>
+        {result.status === 'revoked' && result.revokedAt && <Meta label="Revoked on">{formatDate(result.revokedAt)}</Meta>}
         <Meta label="Assurance">{ASSURANCE_LABELS[result.assurance.level] ?? result.assurance.label}</Meta>
         <Meta label="Validation source">{result.assurance.validationSource === 'nipost-validator' ? 'NIPOST Postcode Validator' : result.assurance.validationSource === 'postgres-dataset' ? 'PostcodeProof dataset' : result.assurance.validationSource ?? 'Not recorded'}</Meta>
         <Meta label="Validation environment">{result.assurance.validationEnvironment === 'test' ? 'Test sandbox' : result.assurance.validationEnvironment === 'live' ? 'Live service' : result.assurance.validationEnvironment === 'local' ? 'Local dataset' : 'Not recorded'}</Meta>
