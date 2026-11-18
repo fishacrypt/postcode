@@ -107,6 +107,7 @@ export interface Credential {
   issuer: { name: string; address: string }
   issuedAt: string
   expiresAt: string
+  revokedAt?: string | null
   credentialHash: string
   assurance: { level: 0 | 1 | 2 | 3; formatValid: boolean; datasetMatch: boolean; gpsFix: boolean; proofOfResidence: string; validationSource?: string; validationEnvironment?: 'test' | 'live' | 'local' }
   renewable: boolean
