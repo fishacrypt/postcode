@@ -42,6 +42,8 @@ export interface CredentialDocument {
     gpsFix: boolean
     proofOfResidence: 'not_established'
     postcodeFormat: 'legacy_6_digit' | 'digital_11_char' | null
+    validationSource: string
+    validationEnvironment: 'test' | 'live' | 'local'
   }
 }
 
