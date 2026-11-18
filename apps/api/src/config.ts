@@ -27,6 +27,7 @@ const envSchema = z.object({
   RESEND_FROM_EMAIL: z.string().email().default('onboarding@resend.dev'),
   /** Required in Resend's unverified-domain testing mode; all messages are routed here. */
   RESEND_TEST_TO: z.string().email().optional(),
+  NIPOST_API_KEY: z.string().min(1).optional(),
   APP_BASE_URL: z.string().url().optional(),
   /** Set to true only behind a reverse proxy you control that appends the client address to X-Forwarded-For. */
   TRUST_PROXY: z.enum(['true', 'false']).default('false'),
@@ -52,6 +53,7 @@ export interface Config {
   resendApiKey: string | null
   resendFromEmail: string
   resendTestTo: string | null
+  nipostApiKey: string | null
   appBaseUrl: string | null
   trustProxy: boolean
 }
@@ -100,6 +102,7 @@ export function loadConfig(source: Record<string, string | undefined> = process.
     resendApiKey: e.RESEND_API_KEY ?? null,
     resendFromEmail: e.RESEND_FROM_EMAIL,
     resendTestTo: e.RESEND_TEST_TO ?? null,
+    nipostApiKey: e.NIPOST_API_KEY ?? null,
     appBaseUrl: e.APP_BASE_URL ?? null,
   }
 }
