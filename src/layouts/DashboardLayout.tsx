@@ -1,6 +1,6 @@
-import { useState, type ReactNode } from 'react'
-import { Navigate, NavLink, Outlet, useLocation } from 'react-router-dom'
-import { MailWarning, Menu, X } from 'lucide-react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { Navigate, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
+import { ChevronLeft, MailWarning, Menu, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { Logo } from '@/components/Logo'
 import { Button, Spinner, cn } from '@/components/ui'
@@ -18,6 +18,26 @@ export function DashboardLayout({ roles, nav, title }: { roles: Role[]; nav: Nav
   const { user, loading, signOut } = useAuth()
   const [open, setOpen] = useState(false)
   const location = useLocation()
+  const navigate = useNavigate()
+  const routeStack = useRef<string[]>([location.pathname])
+  const homePath = user?.role === 'admin' ? '/admin' : user?.role === 'issuer' ? '/issuer' : user?.role === 'business' ? '/business' : '/app'
+
+  useEffect(() => {
+    const stack = routeStack.current
+    if (stack[stack.length - 1] !== location.pathname) stack.push(location.pathname)
+  }, [location.pathname])
+
+  const goBack = () => {
+    const stack = routeStack.current
+    if (stack.length > 1) {
+      stack.pop()
+      navigate(stack[stack.length - 1])
+    } else if (location.pathname !== homePath) {
+      navigate(homePath)
+    } else {
+      navigate('/')
+    }
+  }
   if (loading) return <Spinner />
   if (!user) return <Navigate to="/login" state={{ from: location.pathname }} replace />
   if (!roles.includes(user.role)) return <Navigate to="/" replace />
@@ -65,6 +85,16 @@ export function DashboardLayout({ roles, nav, title }: { roles: Role[]; nav: Nav
           </div>
         )}
         <div className="mx-auto max-w-5xl px-4 pb-24 pt-6 sm:px-6 lg:pt-10">
+          <button
+            type="button"
+            onClick={goBack}
+            className="mb-5 inline-flex min-h-10 items-center gap-1.5 rounded-lg pr-3 text-sm font-medium text-mute transition-colors hover:bg-soft hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+            aria-label="Go back"
+            title="Go back"
+          >
+            <ChevronLeft className="h-5 w-5" aria-hidden />
+            Back
+          </button>
           {!user.emailVerified && <VerifyBanner />}
           <Outlet />
         </div>
