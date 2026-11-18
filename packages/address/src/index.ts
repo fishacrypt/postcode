@@ -74,8 +74,9 @@ export async function validatePostcode(
 
   let geoStatus: GeographicConsistency = 'not_assessable'
   let geoDetail = 'No reference data is available to compare this postcode with the state and LGA.'
+  if (record && !record.state) geoDetail = 'NIPOST confirmed that this postcode exists. Your current Validator access does not return state or LGA details.'
   if (format.valid && state) {
-    if (record) {
+    if (record?.state) {
       const recordState = module.findState(record.state)
       const stateOk = recordState?.isoCode === state.isoCode
       const lgaOk = !record.lga || !input.lga || foldName(record.lga) === foldName(module.canonicalLga(state, input.lga) ?? input.lga)
@@ -83,7 +84,7 @@ export async function validatePostcode(
       geoDetail = stateOk && lgaOk
         ? 'The postcode dataset places this postcode in the state and LGA you entered.'
         : `The postcode dataset places this postcode in ${record.state}${record.lga ? `, ${record.lga}` : ''}.`
-    } else if (format.statePrefix) {
+    } else if (!record && format.statePrefix) {
       const prefixOwner = module.states.find((s) => s.digitalPostcodeCode === format.statePrefix)
       if (prefixOwner) {
         const ok = prefixOwner.isoCode === state.isoCode
