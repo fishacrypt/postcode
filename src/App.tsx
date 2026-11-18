@@ -14,7 +14,7 @@ import { CredentialsPage } from '@/pages/app/CredentialsPage'
 import { HistoryPage, SecurityPage, SettingsPage } from '@/pages/app/AccountPages'
 import { PrivacyPage } from '@/pages/app/PrivacyPage'
 import { ApiKeysPage, BusinessOverview, BusinessProfile, UsagePage } from '@/pages/business/BusinessPages'
-import { AdminAudit, AdminBusinesses, AdminSystem, AdminUsers, IssuerCredentials } from '@/pages/admin/AdminPages'
+import { AdminAudit, AdminBusinesses, AdminCredentials, AdminSystem, AdminUsers, IssuerCredentials } from '@/pages/admin/AdminPages'
 
 const USER_NAV: NavItem[] = [
   { to: '/app', label: 'Overview', icon: <LayoutDashboard />, end: true },
@@ -91,7 +91,7 @@ export default function App() {
             <Route path="businesses" element={<AdminBusinesses />} />
             <Route path="system" element={<AdminSystem />} />
             <Route path="audit" element={<AdminAudit />} />
-            <Route path="credentials" element={<IssuerCredentials />} />
+            <Route path="credentials" element={<AdminCredentials />} />
             <Route path="security" element={<SecurityPage />} />
           </Route>
           <Route path="issuer" element={<DashboardLayout roles={['issuer']} nav={ISSUER_NAV} title="Issuer" />}>
