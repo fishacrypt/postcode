@@ -32,7 +32,7 @@ const NOTICE =
 
 const GENERIC_UNAVAILABLE = new HttpError(404, 'link_unavailable', 'This verification link is invalid, expired or no longer available.')
 
-type Status = 'valid' | 'expired' | 'revoked' | 'invalid'
+type Status = 'valid' | 'expired' | 'revoked' | 'invalid' | 'unavailable'
 
 function labelled(items: { field: ClaimField; value: string }[]) {
   return items.map((d) => ({ field: d.field, label: CLAIM_LABELS[d.field], value: d.value, sensitive: (SENSITIVE_CLAIMS as readonly string[]).includes(d.field) }))
@@ -66,9 +66,14 @@ async function credentialStatus(ctx: Ctx, row: CredentialRow): Promise<{ status:
   if (!sig.issuerTrusted) return { status: 'invalid', onchain: null }
   const base = effectiveStatus(row, ctx.app.now())
   const anchored = await ctx.app.db<{ n: string }[]>`SELECT count(*)::text AS n FROM credential_anchors WHERE credential_id = ${row.id}`
-  const onchain = Number(anchored[0]?.n ?? 0) > 0 ? await onchainStatus(ctx.app.config, row.id) : null
-  // An onchain revocation always wins, even if our database has not caught up yet.
+  const hasAnchor = Number(anchored[0]?.n ?? 0) > 0
+  const onchain = hasAnchor ? await onchainStatus(ctx.app.config, row.id) : null
+  // For anchored credentials, the registry is part of the validity check. Never
+  // claim validity when its status cannot be confirmed or the anchor is missing.
   if (onchain === 'revoked') return { status: 'revoked', onchain }
+  if (onchain === 'expired') return { status: 'expired', onchain }
+  if (onchain === 'unknown') return { status: 'unavailable', onchain }
+  if (onchain === 'none') return { status: 'invalid', onchain }
   return { status: base === 'active' ? 'valid' : base, onchain }
 }
 
