@@ -109,6 +109,60 @@ export function registerAdminRoutes(router: Router): void {
     return json({ credentials: rows.map((r) => ({ id: r.id, status: r.status, issuedAt: r.issued_at, expiresAt: r.expires_at, assurance: r.assurance })) })
   })
 
+  // Admin registry: searchable metadata and revocation history, without address claims.
+  router.get('/api/v1/admin/credentials', async (ctx) => {
+    requireUser(ctx, 'admin')
+    const rawPage = Number(ctx.url.searchParams.get('page') ?? '1')
+    const page = Number.isSafeInteger(rawPage) ? Math.max(1, Math.min(rawPage, 10000)) : 1
+    const pageSize = 20
+    const search = (ctx.url.searchParams.get('q') ?? '').trim().slice(0, 100)
+    const status = ctx.url.searchParams.get('status') ?? 'all'
+    if (!['all', 'active', 'expired', 'revoked'].includes(status)) {
+      throw new HttpError(422, 'validation_failed', 'Unknown credential status filter.')
+    }
+    const pattern = `%${search}%`
+    const filterStatus = status
+    const rows = await ctx.app.db<{
+      id: string; status: string; issued_at: Date; expires_at: Date; assurance: number;
+      owner_email: string; revoked_at: Date | null; revoked_by_email: string | null;
+      revocation_source: string | null; revocation_reason: string | null;
+    }[]>\`
+      SELECT c.id, c.status, c.issued_at, c.expires_at,
+        (c.document->'assurance'->>'level')::int AS assurance, u.email AS owner_email,
+        rev.created_at AS revoked_at, actor.email AS revoked_by_email,
+        rev.source AS revocation_source, rev.reason AS revocation_reason
+      FROM credentials c
+      JOIN users u ON u.id = c.user_id
+      LEFT JOIN LATERAL (
+        SELECT credential_id, revoked_by, source, reason, created_at
+        FROM credential_revocations WHERE credential_id = c.id
+        ORDER BY created_at DESC LIMIT 1
+      ) rev ON true
+      LEFT JOIN users actor ON actor.id = rev.revoked_by
+      WHERE (${search} = '' OR c.id::text ILIKE ${pattern} OR u.email ILIKE ${pattern})
+        AND (${filterStatus} = 'all'
+          OR (${filterStatus} = 'revoked' AND c.status = 'revoked')
+          OR (${filterStatus} = 'expired' AND c.status = 'active' AND c.expires_at <= ${ctx.app.now()})
+          OR (${filterStatus} = 'active' AND c.status = 'active' AND c.expires_at > ${ctx.app.now()}))
+      ORDER BY c.created_at DESC
+      LIMIT ${pageSize} OFFSET ${(page - 1) * pageSize}\`
+    const totals = await ctx.app.db<{ total: string }[]>\`
+      SELECT count(*)::text AS total FROM credentials c JOIN users u ON u.id = c.user_id
+      WHERE (${search} = '' OR c.id::text ILIKE ${pattern} OR u.email ILIKE ${pattern})
+        AND (${filterStatus} = 'all'
+          OR (${filterStatus} = 'revoked' AND c.status = 'revoked')
+          OR (${filterStatus} = 'expired' AND c.status = 'active' AND c.expires_at <= ${ctx.app.now()})
+          OR (${filterStatus} = 'active' AND c.status = 'active' AND c.expires_at > ${ctx.app.now()}))\`
+    return json({
+      credentials: rows.map((r) => ({
+        id: r.id, status: r.status === 'revoked' ? 'revoked' : r.expires_at <= ctx.app.now() ? 'expired' : 'active',
+        issuedAt: r.issued_at, expiresAt: r.expires_at, assurance: r.assurance, holderEmail: r.owner_email,
+        revocation: r.revoked_at ? { revokedAt: r.revoked_at, revokedBy: r.revoked_by_email, source: r.revocation_source, reason: r.revocation_reason } : null,
+      })),
+      page, pageSize, total: Number(totals[0]?.total ?? 0),
+    })
+  })
+
   router.post('/api/v1/issuer/credentials/:id/revoke', async (ctx) => {
     const actor = requireUser(ctx, 'issuer', 'admin')
     const id = uuid(ctx.params.id)
