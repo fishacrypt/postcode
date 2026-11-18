@@ -108,7 +108,7 @@ export interface Credential {
   issuedAt: string
   expiresAt: string
   credentialHash: string
-  assurance: { level: 0 | 1 | 2 | 3; formatValid: boolean; datasetMatch: boolean; gpsFix: boolean; proofOfResidence: string }
+  assurance: { level: 0 | 1 | 2 | 3; formatValid: boolean; datasetMatch: boolean; gpsFix: boolean; proofOfResidence: string; validationSource?: string; validationEnvironment?: 'test' | 'live' | 'local' }
   renewable: boolean
   addressChanged: boolean
   address: { state: string; lga: string; city: string; postcode: string } | null
