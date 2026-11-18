@@ -61,7 +61,7 @@ export interface Gps {
 
 export interface Validation {
   format: { valid: boolean; normalised: string | null; format: string | null; reason: string | null; statePrefix: string | null }
-  dataset: { status: 'matched' | 'not_found' | 'dataset_unavailable' | 'not_checked'; record: { state: string; lga: string | null; area: string | null } | null }
+  dataset: { status: 'matched' | 'not_found' | 'dataset_unavailable' | 'not_checked'; record: { state: string | null; lga: string | null; area: string | null; sourceId?: string } | null }
   geographic: { status: 'consistent' | 'inconsistent' | 'not_assessable'; detail: string }
   gps: { status: 'not_provided' | 'confirmed' | 'low_accuracy'; accuracyMeters: number | null; capturedAt: string | null }
   proofOfResidence: 'not_established'
