@@ -57,22 +57,27 @@ export async function issueCredential(
   const sensitive = readSensitive(app, address)
 
   // Re-run validation now so the credential reflects today's dataset, using the stored GPS fix as captured.
-  const latest = await app.db<{ validated_at: Date }[]>`
-    SELECT validated_at FROM address_validation_records WHERE address_id = ${address.id} ORDER BY validated_at DESC LIMIT 1`
-  const validatedAt = latest[0]?.validated_at ?? app.now()
-  const validation = await validatePostcode(
-    module,
-    app.provider,
-    { postcode: address.postcode, state: address.state, lga: address.lga, gps: sensitive.gps },
-    validatedAt,
-  )
+  let validation
+  try {
+    validation = await validatePostcode(
+      module,
+      app.provider,
+      { postcode: address.postcode, state: address.state, lga: address.lga, gps: sensitive.gps },
+      app.now(),
+    )
+  } catch {
+    throw new HttpError(503, 'postcode_validation_unavailable', 'The postcode validation provider is temporarily unavailable. Try again before issuing a credential.')
+  }
   if (!validation.format.valid) {
     throw new HttpError(422, 'address_not_valid', 'Fix the postcode before issuing a credential.')
+  }
+  if (validation.dataset.status !== 'matched') {
+    throw new HttpError(422, 'postcode_not_verified', 'A successful postcode dataset match is required before issuing a credential.')
   }
   if (validation.geographic.status === 'inconsistent') {
     throw new HttpError(422, 'address_inconsistent', validation.geographic.detail)
   }
-  const gpsFix = assessGps(address.country, sensitive.gps, validatedAt).status === 'confirmed'
+  const gpsFix = assessGps(address.country, sensitive.gps, app.now()).status === 'confirmed'
 
   const values: Partial<Record<ClaimField, string>> = {
     country: address.country,
@@ -114,6 +119,10 @@ export async function issueCredential(
       gpsFix,
       proofOfResidence: 'not_established',
       postcodeFormat: validation.format.format,
+      validationSource: app.provider.id,
+      validationEnvironment: app.provider.id === 'nipost-validator'
+        ? app.config.nipostEnvironment
+        : 'local',
     },
   }
   const documentHash = hashCanonical(document as unknown as Json)
