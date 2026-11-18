@@ -44,6 +44,7 @@ export function CredentialsPage() {
               <Info label="Issuer">{c.issuer.name}</Info>
               <Info label="Issued">{formatDate(c.issuedAt)}</Info>
               <Info label="Expires">{formatDate(c.expiresAt)}</Info>
+              {c.revokedAt && <Info label="Revoked">{formatDate(c.revokedAt)}</Info>}
               <Info label="Assurance">{ASSURANCE_LABELS[c.assurance.level]}</Info>
               <Info label="Onchain"><Badge tone={statusTone(c.anchor.status)}>{c.anchor.status === 'anchored' ? 'Anchored' : 'Not anchored'}</Badge></Info>
               <Info label="Covers">{c.address ? `${c.address.lga}, ${c.address.state} ${c.address.postcode}` : 'Address deleted'}</Info>
