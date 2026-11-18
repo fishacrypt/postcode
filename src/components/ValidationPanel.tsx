@@ -23,7 +23,7 @@ const GPS_COPY: Record<Validation['gps']['status'], string> = {
 export function ValidationPanel({ validation }: { validation: Validation }) {
   const rows: [string, string, string][] = [
     ['Format', validation.format.valid ? `Valid ${validation.format.format === 'digital_11_char' ? 'digital postcode' : '6-digit postcode'}` : (validation.format.reason ?? 'Invalid'), validation.format.valid ? 'valid' : 'invalid'],
-    ['Dataset match', DATASET_COPY[validation.dataset.status], validation.dataset.status],
+    ['Dataset match', validation.dataset.status === 'matched' && validation.dataset.record?.sourceId === 'nipost-validator' ? 'Verified by NIPOST Postcode Validator (test environment)' : DATASET_COPY[validation.dataset.status], validation.dataset.status],
     ['Geographic consistency', validation.geographic.detail && validation.geographic.status !== 'not_assessable' ? validation.geographic.detail : GEO_COPY[validation.geographic.status], validation.geographic.status],
     ['Device location', GPS_COPY[validation.gps.status], validation.gps.status],
   ]
