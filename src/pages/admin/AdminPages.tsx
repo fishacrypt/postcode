@@ -220,7 +220,7 @@ export function AdminCredentials() {
                 </div>
               </div>
               {c.revocation && (
-                <div className="rounded-lg bg-subtle px-3 py-2 text-xs text-mute">
+                <div className="rounded-lg bg-panel px-3 py-2 text-xs text-mute">
                   <p className="font-medium text-ink">Revocation record · {formatDateTime(c.revocation.revokedAt)}</p>
                   <p>Source: {c.revocation.source} · by {c.revocation.revokedBy ?? 'former account'}</p>
                   {c.revocation.reason && <p>Reason: {c.revocation.reason}</p>}
@@ -232,7 +232,7 @@ export function AdminCredentials() {
         <div className="flex items-center justify-between border-t border-line pt-3 text-xs text-mute">
           <span>{query.data ? `Showing ${query.data.total === 0 ? 0 : (page - 1) * query.data.pageSize + 1}–${Math.min(page * query.data.pageSize, query.data.total)} of ${query.data.total}` : ' '}</span>
           <div className="flex items-center gap-2">
-            <Button size="sm" variant="secondary" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>Previous</Button>
+            <Button variant="secondary" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>Previous</Button>
             <span>Page {page} of {totalPages}</span>
             <Button size="sm" variant="secondary" disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)}>Next</Button>
           </div>
