@@ -6,6 +6,19 @@ import { DbPostcodeProvider } from './postcodes/provider'
 import { RateLimiter } from './security/ratelimit'
 import { createMailer } from './services/mailer'
 
+// Safe Railway startup diagnostic: report presence only, never secret values.
+console.log('[startup-env-diagnostic]', JSON.stringify({
+  railwayProjectId: process.env.RAILWAY_PROJECT_ID ?? null,
+  railwayServiceId: process.env.RAILWAY_SERVICE_ID ?? null,
+  railwayEnvironmentId: process.env.RAILWAY_ENVIRONMENT_ID ?? null,
+  railwayDeploymentId: process.env.RAILWAY_DEPLOYMENT_ID ?? null,
+  hasDatabaseUrl: Boolean(process.env.DATABASE_URL),
+  hasAppHashPepper: Boolean(process.env.APP_HASH_PEPPER),
+  hasIssuerPrivateKey: Boolean(process.env.ISSUER_PRIVATE_KEY),
+  nodeEnv: process.env.NODE_ENV ?? null,
+  port: process.env.PORT ?? null,
+}))
+
 const config = loadConfig()
 const db = createDb(config.databaseUrl)
 const applied = await migrate(db)
