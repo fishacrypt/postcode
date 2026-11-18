@@ -19,7 +19,10 @@ const envSchema = z.object({
   VITE_REGISTRY_ADDRESS: addr.optional().or(z.literal('')),
   ANCHOR_CHAIN_ID: z.coerce.number().int().default(5042002),
   MAILER: z.enum(['dev', 'webhook', 'resend']).optional(),
-  MAIL_WEBHOOK_URL: z.string().url().optional(),
+  MAIL_WEBHOOK_URL: z.preprocess(
+  (value) => value === '' ? undefined : value,
+  z.string().url().optional()
+),
   RESEND_API_KEY: z.string().min(1).optional(),
   RESEND_FROM_EMAIL: z.string().email().default('onboarding@resend.dev'),
   /** Required in Resend's unverified-domain testing mode; all messages are routed here. */
