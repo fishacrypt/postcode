@@ -84,7 +84,7 @@ export function Badge({ tone = 'neutral', children }: { tone?: Tone; children: R
 export function statusTone(status: string): Tone {
   if (['active', 'valid', 'approved', 'matched', 'consistent', 'confirmed', 'anchored'].includes(status)) return 'ok'
   if (['revoked', 'invalid', 'declined', 'inconsistent', 'cancelled'].includes(status)) return 'bad'
-  if (['expired', 'pending', 'low_accuracy', 'dataset_unavailable', 'not_found'].includes(status)) return 'warn'
+  if (['expired', 'pending', 'low_accuracy', 'dataset_unavailable', 'not_found', 'unavailable'].includes(status)) return 'warn'
   return 'neutral'
 }
 
