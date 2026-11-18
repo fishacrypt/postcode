@@ -84,7 +84,7 @@ export async function validatePostcode(
       geoDetail = stateOk && lgaOk
         ? 'The postcode dataset places this postcode in the state and LGA you entered.'
         : `The postcode dataset places this postcode in ${record.state}${record.lga ? `, ${record.lga}` : ''}.`
-    } else if (!record && format.statePrefix) {
+    } else if ((!record || !record.state) && format.statePrefix) {
       const prefixOwner = module.states.find((s) => s.digitalPostcodeCode === format.statePrefix)
       if (prefixOwner) {
         const ok = prefixOwner.isoCode === state.isoCode
